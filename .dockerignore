@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+__pycache__
+.pytest_cache
+.env
+*.py[cod]
+*.log
+server.log
+tests
+data/app.db
+data/recon
+data/clones
+data/archives
+**/node_modules

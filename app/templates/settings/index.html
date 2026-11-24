@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Настройки — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Настройки</h2>
+
+<form method="post" action="/settings" class="col-lg-7">
+  {% for key, label, value in fields %}
+  <div class="mb-3">
+    <label class="form-label">{{ label }}</label>
+    {% if key == 'lookalike_domains' %}
+      <textarea name="{{ key }}" rows="2" class="form-control font-monospace" placeholder="corp.test, mail.test">{{ value }}</textarea>
+    {% else %}
+      <input type="text" name="{{ key }}" value="{{ value }}" class="form-control font-monospace">
+    {% endif %}
+  </div>
+  {% endfor %}
+  <button class="btn btn-primary">Сохранить</button>
+</form>
+
+<div class="col-lg-5 mt-4 mt-lg-0">
+  <div class="card p-3 mb-3">
+    <h6>Тест SMTP</h6>
+    <form method="post" action="/settings/smtp_test">
+      <input name="recipient" type="email" class="form-control form-control-sm mb-2" placeholder="tester@stand.test" required>
+      <input name="password" type="password" class="form-control form-control-sm mb-2" placeholder="Пароль SMTP (не сохраняется)">
+      <button class="btn btn-outline-primary btn-sm">Проверить подключение</button>
+    </form>
+  </div>
+  <div class="card p-3 mb-3">
+    <h6>Тест IMAP</h6>
+    <form method="post" action="/settings/imap_test">
+      <input name="mailbox" class="form-control form-control-sm mb-2" placeholder="tester@stand.test" required>
+      <input name="password" type="password" class="form-control form-control-sm mb-2" placeholder="Пароль IMAP (не сохраняется)">
+      <button class="btn btn-outline-primary btn-sm">Проверить подключение</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

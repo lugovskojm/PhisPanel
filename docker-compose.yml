@@ -1,0 +1,32 @@
+name: phishpanel
+
+services:
+  phishpanel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: phishpanel:local
+    ports:
+      - "8000:8000"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      ARM_SESSION_SECRET: "${ARM_SESSION_SECRET:-docker-compose-change-this-session-secret}"
+    volumes:
+      - phishpanel-data:/app/data
+    restart: unless-stopped
+    init: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/login', timeout=5)",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  phishpanel-data:

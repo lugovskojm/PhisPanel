@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Разведка — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-3">Разведка</h2>
+
+<form method="post" action="/recon" class="row g-2 mb-4" style="max-width: 760px">
+  <input type="hidden" name="cross_domain" value="true">
+  <input type="hidden" name="cross_confirm" value="CONFIRM">
+  <div class="col-md-5"><input type="text" name="domain" value="{{ domain }}" required class="form-control" placeholder="example.com или https://example.com"></div>
+  <div class="col-md-2"><input type="number" name="max_pages" value="40" min="1" max="100" class="form-control" title="Лимит страниц"></div>
+  <div class="col-md-2"><input type="number" name="max_depth" value="3" min="0" max="10" class="form-control" title="Глубина BFS"></div>
+  <div class="col-md-1"><input type="number" name="retries" value="1" min="0" max="3" class="form-control" title="Повторы при сбое"></div>
+  <div class="col-md-2"><button class="btn btn-primary w-100">Запустить crawler</button></div>
+</form>
+
+{% if job %}
+<div class="mb-4" style="max-width: 760px">
+  <div class="d-flex justify-content-between small mb-1">
+    <span id="recon-status-text">Запуск crawler'а…</span>
+    <span id="recon-percent">0%</span>
+  </div>
+  <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="height: 26px">
+    <div id="recon-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" style="width: 0%"></div>
+  </div>
+  <div id="recon-last-url" class="small text-muted mt-1 break-all"></div>
+</div>
+<script>
+(function () {
+  var runId = "{{ job.run_id }}";
+  var maxPages = {{ job.max_pages }};
+  var bar = document.getElementById("recon-bar");
+  var pct = document.getElementById("recon-percent");
+  var statusText = document.getElementById("recon-status-text");
+  var lastUrl = document.getElementById("recon-last-url");
+
+  function finishError(msg) {
+    statusText.textContent = "Ошибка: " + msg;
+    bar.classList.remove("progress-bar-animated", "bg-primary");
+    bar.classList.add("bg-danger");
+    pct.textContent = "";
+  }
+
+  var timer = setInterval(function () {
+    fetch("/recon/progress/" + runId)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.status === "done") {
+          clearInterval(timer);
+          bar.style.width = "100%";
+          pct.textContent = "100%";
+          statusText.textContent = "Готово, загружаем результаты…";
+          setTimeout(function () { location.href = "/recon/run/" + runId; }, 400);
+        } else if (data.status === "error") {
+          clearInterval(timer);
+          finishError(data.error || "неизвестная ошибка");
+        } else {
+          var done = data.pages_done || 0;
+          var limit = data.max_pages || maxPages;
+          var percent = limit > 0 ? Math.min(99, Math.round(done * 100 / limit)) : 0;
+          bar.style.width = percent + "%";
+          pct.textContent = percent + "%";
+          statusText.textContent = "Страниц пройдено: " + done + " из " + limit;
+          if (data.last_url) lastUrl.textContent = data.last_url;
+        }
+      })
+      .catch(function () { /* сеть мигнула — попробуем на следующем опросе */ });
+  }, 2000);
+</script>
+{% endif %}
+
+{% if status %}
+<div class="alert alert-secondary small">
+  Tool: <strong>{{ status.tool }}</strong><br>
+  <code>{{ status.command }}</code><br>
+  Страницы: {{ status.pages_visited }}/{{ status.max_pages }}; очередь: {{ status.queue_remaining }}; глубина: {{ status.max_depth }}.
+  {% if status.run_id %}<a href="/recon/export/{{ status.run_id }}.csv" class="btn btn-sm btn-outline-secondary ms-2">Скачать CSV</a>{% endif %}
+  {% for page in status.pages %}<div><code>{{ page.url }}</code> — {{ page.status }}{% if page.error %}: {{ page.error }}{% endif %}</div>{% endfor %}
+</div>
+{% endif %}
+
+{% if results is not none %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h5 class="m-0">Найдено адресов: {{ results|length }}</h5>
+  {% if results %}
+  <form method="post" action="/recon/add_all">
+    <input type="hidden" name="items" value="{{ results | tojson }}">
+    <button class="btn btn-success btn-sm">Добавить все в контакты</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if results %}
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>E-mail</th><th>Имя (best-effort)</th><th>Найдено на странице</th><th></th></tr></thead>
+  <tbody>
+  {% for r in results %}
+    <tr>
+      <td class="font-monospace">{{ r.email }}</td>
+      <td>{{ r.name or '—' }}</td>
+      <td class="small text-muted"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url[:70] }}{% if r.url|length > 70 %}…{% endif %}</a></td>
+      <td class="text-end">
+        <form method="post" action="/contacts/add" class="d-inline">
+          <input type="hidden" name="email" value="{{ r.email }}">
+          <input type="hidden" name="name" value="{{ r.name }}">
+          <input type="hidden" name="found_url" value="{{ r.url }}">
+          <input type="hidden" name="source" value="recon">
+          <button class="btn btn-sm btn-outline-success" type="submit">В контакты</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+{% if status and status.http_errors %}
+<div class="alert alert-warning">Почты не найдены, но {{ status.http_errors }} страниц(ы) не загрузились — вероятно, проблема с сетью или сайт временно недоступен. Попробуйте запустить ещё раз.</div>
+{% else %}
+<div class="alert alert-warning">Почты не найдены. Попробуйте другой домен или увеличьте глубину краулинга.</div>
+{% endif %}
+{% endif %}
+{% endif %}
+{% endblock %}

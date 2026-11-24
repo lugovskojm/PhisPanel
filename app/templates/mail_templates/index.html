@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Шаблоны писем — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Шаблоны фишинг-писем</h2>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <form method="post" action="/mail_templates/new" class="card p-3 mb-3">
+      <h5 class="mb-3">Новый шаблон</h5>
+      <div class="mb-2"><input type="text" name="name" required class="form-control form-control-sm" placeholder="Название шаблона, например «IT: сброс пароля»"></div>
+      <div class="mb-2"><input type="text" name="subject" class="form-control form-control-sm" placeholder="Тема письма"></div>
+      <textarea name="body_html" rows="8" class="form-control form-control-sm font-monospace mb-2" placeholder="<p>{name}, подтвердите пароль: <a href='{link}'>ссылка</a></p>">
+        &lt;p&gt;Здравствуйте, {name}&lt;/p&gt;&lt;p&gt;Обновите учётные данные корпоративной почты:&lt;br&gt;&lt;a href=&quot;{link}&quot;&gt;Перейти&lt;/a&gt;&lt;/p&gt;</textarea>
+      <button class="btn btn-primary btn-sm">Сохранить шаблон</button>
+    </form>
+
+    {% if items %}
+    <h5 class="mt-4">Существующие ({{ items|length }})</h5>
+    <ul class="list-group">
+      {% for t in items %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ t.name }}</strong><br>
+          <span class="small text-muted">{{ t.subject or 'без темы' }} · {{ t.created_at.strftime('%d.%m.%Y') if t.created_at else '' }}</span>
+        </div>
+        <form method="post" action="/mail_templates/delete">
+          <input type="hidden" name="id" value="{{ t.id }}">
+          <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить шаблон?')">Удалить</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

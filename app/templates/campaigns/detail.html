@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} — PhishPanel{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="m-0">{{ campaign.name }}</h2>
+  <form method="post" action="/campaigns/{{ campaign.id }}/status" class="d-flex gap-2">
+    {% for st, label in [('draft','Черновик'),('active','Активна'),('done','Завершена')] %}
+      <button name="status" value="{{ st }}" class="btn btn-sm {{ 'btn-success' if campaign.status == st else 'btn-outline-secondary' }}">{{ label }}</button>
+    {% endfor %}
+  </form>
+</div>
+
+<div class="card p-3 mb-4">
+  <div class="row g-2 align-items-end">
+    <div class="col-lg-4">
+      <form method="post" action="/campaigns/{{ campaign.id }}/send">
+        <label class="form-label small">Пароль SMTP вводится только для отправки</label>
+        <input type="password" name="password" class="form-control form-control-sm mb-2" autocomplete="off">
+        <button class="btn btn-primary btn-sm">Отправить письма</button>
+      </form>
+    </div>
+    <div class="col-lg-4">
+      <form method="post" action="/campaigns/{{ campaign.id }}/imap_check">
+        <label class="form-label small">Пароль IMAP вводится только для проверки</label>
+        <input type="password" name="password" class="form-control form-control-sm mb-2" autocomplete="off">
+        <button class="btn btn-outline-primary btn-sm">Проверить INBOX/JUNK</button>
+      </form>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+      <a href="/campaigns/{{ campaign.id }}/report.csv" class="btn btn-outline-secondary btn-sm">Скачать CSV-отчёт</a>
+      <a href="/campaigns/{{ campaign.id }}/report.pdf" class="btn btn-outline-secondary btn-sm">Скачать PDF-отчёт</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6"><div class="card text-center p-3"><div class="display-6">{{ campaign.contacts|length }}</div><div class="text-muted small">Получателей</div></div></div>
+  <div class="col-md-3 col-6"><div class="card text-center p-3"><div class="display-6 text-success">{{ metrics.opens }}</div><div class="text-muted small">Открытий</div></div></div>
+  <div class="col-md-3 col-6"><div class="card text-center p-3"><div class="display-6 text-primary">{{ metrics.clicks }}</div><div class="text-muted small">Кликов</div></div></div>
+  <div class="col-md-3 col-6"><div class="card text-center p-3"><div class="display-6 text-danger">{{ metrics.creds }}</div><div class="text-muted small">Перехвачено кредов</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <h5>Получатели ({{ rows|length }})</h5>
+    {% if rows %}
+    <div class="table-responsive mb-3">
+      <table class="table table-sm table-hover align-middle table-metrics">
+        <thead><tr><th>E-mail</th><th>Имя</th><th>SMTP</th><th>IMAP</th><th>Открыл</th><th>Кликнул</th><th></th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.contact.email }}</td>
+            <td class="small">{{ r.contact.name or '—' }}</td>
+            <td><span class="badge text-bg-secondary">{{ r.delivery_status }}</span>{% if r.delivery_error %}<div class="small text-danger">{{ r.delivery_error[:80] }}</div>{% endif %}</td>
+            <td><span class="badge {{ 'text-bg-warning' if r.imap_location == 'JUNK' else ('text-bg-success' if r.imap_location == 'INBOX' else 'text-bg-secondary') }}">{{ r.imap_location }}</span></td>
+            <td>{% if r.opens %}<span class="badge text-bg-success">{{ r.opens }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+            <td>{% if r.clicks %}<span class="badge text-bg-primary">{{ r.clicks }}</span>{% else %}<span class="text-muted">0</span>{% endif %}</td>
+            <td>
+              <form method="post" action="/campaigns/{{ campaign.id }}/contacts/{{ r.contact.id }}/delete" class="d-inline">
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить получателя {{ r.contact.email }} из кампании?')">Удалить</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/campaigns/{{ campaign.id }}/add_contacts" class="card p-3">
+      <label class="form-label small text-muted">Добавить получателей (e-mail через запятую или с новой строки)</label>
+      <textarea name="emails" rows="2" class="form-control form-control-sm mb-2" placeholder="ivan.petrov@corp.test, anna.smirnova@corp.test"></textarea>
+      <button class="btn btn-outline-primary btn-sm">Добавить</button>
+    </form>
+  </div>
+
+  <div class="col-lg-5">
+    <h5>Письмо</h5>
+    <div class="card p-3 mb-4 small">
+      <div class="mb-1"><strong>От:</strong> {{ campaign.sender_name or '—' }} &lt;{{ campaign.sender_email or '—' }}&gt;</div>
+      <div class="mb-2"><strong>Тема:</strong> {{ campaign.subject or '—' }}</div>
+      {% if landing %}
+        <div class="mb-2"><strong>Лендинг:</strong> <a href="/landing/{{ landing.id }}" target="_blank">{{ landing.name }}</a></div>
+      {% endif %}
+      <hr>
+      {{ campaign.body_html | safe }}
+    </div>
+
+    <h5>Перехваченные учётные данные ({{ creds|length }})</h5>
+    {% if creds %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead><tr><th>E-mail</th><th>Логин</th><th>Когда</th></tr></thead>
+        <tbody>
+        {% for cr in creds %}
+          <tr>
+            <td>{{ cr.contact_email or '—' }}</td>
+            <td class="font-monospace">{{ cr.login or '—' }}</td>
+            <td class="text-muted small">{{ cr.created_at.strftime('%d.%m %H:%M') if cr.created_at else '' }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted small mb-0">Пока никто не отправил данные.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Контакты — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Контакты ({{ items|length }})</h2>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="get" action="/contacts" class="input-group mb-3" style="max-width: 400px">
+      <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск по e-mail или имени">
+      <button class="btn btn-outline-primary">Найти</button>
+    </form>
+
+    {% if items %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>E-mail</th><th>Имя</th><th>Источник</th><th>Найдено на</th><th></th></tr></thead>
+        <tbody>
+        {% for c in items %}
+          <tr>
+            <td class="font-monospace">{{ c.email }}</td>
+            <td>{{ c.name or '—' }}</td>
+            <td>{% if c.source == 'recon' %}<span class="badge text-bg-secondary">разведка</span>{% else %}<span class="badge text-bg-light border">вручную</span>{% endif %}</td>
+            <td class="small text-muted">{% if c.found_url %}<a href="{{ c.found_url }}" target="_blank" rel="noopener">{{ c.found_url[:60] }}{% if c.found_url|length > 60 %}…{% endif %}</a>{% else %}—{% endif %}</td>
+            <td class="text-end">
+              <form method="post" action="/contacts/{{ c.id }}/delete" class="d-inline">
+                <input type="hidden" name="id" value="{{ c.id }}">
+                <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить {{ c.email }}?')">Удалить</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alert alert-light border">Контактов пока нет.</div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <form method="post" action="/contacts/add" class="card p-3 mb-3">
+      <h5 class="mb-3">Добавить вручную</h5>
+      <div class="mb-2"><input type="email" name="email" class="form-control form-control-sm" placeholder="ivan.petrov@corp.ru"></div>
+      <div class="mb-2"><input type="text" name="name" class="form-control form-control-sm" placeholder="Иван Петров (необязательно)"></div>
+      <button class="btn btn-primary btn-sm">Добавить</button>
+    </form>
+
+    <form method="post" action="/contacts/add" class="card p-3">
+      <h5 class="mb-3">Массовое добавление</h5>
+      <textarea name="emails_bulk" rows="6" class="form-control form-control-sm font-monospace mb-2" placeholder="ivan.petrov@corp.ru&#10;anna.smirnova@corp.ru"></textarea>
+      <button class="btn btn-outline-primary btn-sm">Добавить список</button>
+    </form>
+
+    <a href="/recon" class="alert alert-info small p-2 mt-3 d-block text-decoration-none">Разведка</a>
+  </div>
+</div>
+{% endblock %}

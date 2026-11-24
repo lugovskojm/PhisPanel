@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/clones/
+data/tools/
+data/recon/
+data/app.db
+server.log
+*.log

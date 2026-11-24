@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Кампании — PhishPanel{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="m-0">Кампании</h2>
+  <a href="/campaigns/new" class="btn btn-primary">Новая кампания</a>
+</div>
+
+{% if items %}
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>Название</th><th>Отправитель</th><th>Статус</th><th>Получателей</th><th>Открыто</th><th>Кликов</th><th>Кредов</th><th>Создана</th><th></th></tr></thead>
+  <tbody>
+  {% for c in items %}
+    <tr>
+      <td><a href="/campaigns/{{ c.id }}"><strong>{{ c.name }}</strong></a></td>
+      <td class="small">{{ c.sender_name }} &lt;{{ c.sender_email }}&gt;</td>
+      <td><span class="badge badge-status-{{ c.status }}">{{ {'draft':'черновик','active':'активна','done':'завершена'}.get(c.status, c.status) }}</span></td>
+      <td>{{ c.contacts|length }}</td>
+      <td>{{ c.metrics.opens }}</td>
+      <td>{{ c.metrics.clicks }}</td>
+      <td>{{ c.metrics.creds }}</td>
+      <td class="text-muted small">{{ c.created_at.strftime('%d.%m.%Y %H:%M') if c.created_at else '' }}</td>
+      <td class="text-end">
+        <form method="post" action="/campaigns/{{ c.id }}/delete" class="d-inline">
+          <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить кампанию {{ c.name }}?')">Удалить</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="alert alert-light border">Кампаний пока нет.</div>
+{% endif %}
+{% endblock %}

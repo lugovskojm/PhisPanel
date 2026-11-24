@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Лендинг-страницы — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Лендинг-страницы (клоны сайтов)</h2>
+
+<form method="post" action="/landings/clone" class="row g-2 mb-4 col-lg-8">
+  <div class="col"><input type="text" name="url" value="{{ url }}" required class="form-control" placeholder="https://corp.ru/login — страница, которую клонируем"></div>
+  <div class="col-auto"><input type="text" name="name" value="{{ name }}" class="form-control form-control-sm" style="width:180px" placeholder="Название (необязательно)"></div>
+  <div class="col-auto"><div class="form-check"><input type="checkbox" name="render_js" value="true" class="form-check-input" id="cloneJs"><label for="cloneJs" class="form-check-label small">JS-рендер (Playwright)</label></div></div>
+  <div class="col-auto"><button class="btn btn-primary">Клонировать</button></div>
+</form>
+
+<h4 class="mb-3">Архив сайта</h4>
+<form method="post" action="/landings/archive" class="row g-2 mb-3 col-lg-10">
+  <div class="col-md-4"><input type="text" name="url" required class="form-control" placeholder="https://example.com/page"></div>
+  <div class="col-md-2"><input type="text" name="name" class="form-control" placeholder="Название"></div>
+  <div class="col-md-2">
+    <select name="mode" class="form-select form-select-sm">
+      <option value="static">Статический (requests + BS4)</option>
+      <option value="js">JS-рендер (Playwright)</option>
+    </select>
+  </div>
+  <div class="col-md-1"><input type="number" name="depth" value="1" min="0" max="5" class="form-control" title="Глубина"></div>
+  <div class="col-md-1"><input type="number" name="page_limit" value="10" min="1" max="50" class="form-control" title="Страниц"></div>
+  <div class="col-md-1"><input type="number" name="timeout_seconds" value="6" min="1" max="30" class="form-control" title="Таймаут"></div>
+  <div class="col-md-2"><input type="number" name="max_bytes" value="5000000" min="100000" max="50000000" class="form-control" title="Макс. байт/файл"></div>
+  <div class="col-md-1"><button class="btn btn-outline-primary w-100">Архив</button></div>
+</form>
+{% if archives %}
+<div class="table-responsive mb-4">
+<table class="table table-sm align-middle"><thead><tr><th>Архив</th><th>Инструмент</th><th>Статус</th><th>Детали</th><th></th></tr></thead><tbody>
+{% for job in archives %}
+<tr><td>{{ job.name }}</td><td class="small">{{ {'monolith': 'Статический', 'playwright': 'JS-рендер', 'static': 'Статический', 'js': 'JS-рендер (Playwright)'}.get(job.mode, job.mode) }}</td><td><span class="badge badge-status-{{ job.status }}">{{ job.status }}</span></td><td class="small">{{ job.note or '—' }}</td>
+<td class="text-end">
+  {% if job.status == 'ready' %}<a href="/landings/archive/{{ job.id }}" target="_blank" class="btn btn-sm btn-outline-primary">Просмотр</a> <a href="/landings/archive/{{ job.id }}/download" class="btn btn-sm btn-outline-secondary">ZIP</a>{% endif %}
+  <form method="post" action="/landings/archive/{{ job.id }}/delete" class="d-inline">
+    <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить архив {{ job.name }}?')">Удалить</button>
+  </form>
+</td></tr>
+{% endfor %}
+</tbody></table></div>
+{% endif %}
+
+{% if items %}
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>Название</th><th>Исходный URL</th><th>Статус</th><th>Примечание</th><th></th></tr></thead>
+  <tbody>
+  {% for lp in items %}
+    <tr>
+      <td>{{ lp.name }}</td>
+      <td class="small text-muted">{{ lp.source_url }}</td>
+      <td><span class="badge badge-status-{{ lp.status }}">{{ {'ready':'готов','error':'ошибка','pending':'в работе'}.get(lp.status, lp.status) }}</span></td>
+      <td class="small text-muted">{{ lp.note or '—' }}</td>
+      <td class="text-end">
+        {% if lp.status == 'ready' %}<a href="/landing/{{ lp.id }}" target="_blank" class="btn btn-sm btn-outline-primary">Открыть клон</a>{% endif %}
+        <form method="post" action="/landings/{{ lp.id }}/delete" class="d-inline">
+          <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Удалить лендинг {{ lp.name }}?')">Удалить</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="alert alert-light border">Лендингов пока нет. Введите URL страницы-жертвы выше.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Дашборд</h2>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6">{{ stats.campaigns }}</div><div class="text-muted small">Кампаний</div></div></div>
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6">{{ stats.contacts }}</div><div class="text-muted small">Контактов</div></div></div>
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6">{{ stats.landings }}</div><div class="text-muted small">Лендингов готово</div></div></div>
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6 text-success">{{ stats.opens }}</div><div class="text-muted small">Открытий писем</div></div></div>
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6 text-primary">{{ stats.clicks }}</div><div class="text-muted small">Кликов по ссылкам</div></div></div>
+  <div class="col-md-2 col-6"><div class="card stat-card text-center p-3"><div class="display-6 text-danger">{{ stats.creds }}</div><div class="text-muted small">Перехвачено кредов</div></div></div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="m-0">Последние кампании</h4>
+  <a href="/campaigns/new" class="btn btn-primary btn-sm">Новая кампания</a>
+</div>
+{% if recent %}
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>Название</th><th>Статус</th><th>Открыто</th><th>Кликов</th><th>Кредов</th><th>Создана</th></tr></thead>
+  <tbody>
+  {% for c in recent %}
+    <tr>
+      <td><a href="/campaigns/{{ c.id }}">{{ c.name }}</a></td>
+      <td><span class="badge badge-status-{{ c.status }}">{{ {'draft':'черновик','active':'активна','done':'завершена'}.get(c.status, c.status) }}</span></td>
+      <td>{{ c.metrics.opens }}</td>
+      <td>{{ c.metrics.clicks }}</td>
+      <td>{{ c.metrics.creds }}</td>
+      <td class="text-muted small">{{ c.created_at.strftime('%d.%m.%Y %H:%M') if c.created_at else '' }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<div class="alert alert-light border">Кампаний пока нет. <a href="/campaigns/new">Создать первую</a>.</div>
+{% endif %}
+{% endblock %}

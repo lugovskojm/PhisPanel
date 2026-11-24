@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Новая кампания — PhishPanel{% endblock %}
+{% block content %}
+<h2 class="mb-4">Новая кампания</h2>
+
+<form method="post" action="/campaigns/new" class="col-lg-8">
+  <div class="mb-3">
+    <label class="form-label">Название кампании *</label>
+    <input type="text" name="name" required class="form-control" placeholder="Например: Фишинг — IT-отдел, ноябрь">
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <label class="form-label">Имя отправителя</label>
+      <input type="text" name="sender_name" class="form-control" placeholder="IT-отдел">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">E-mail отправителя (lookalike)</label>
+      <input type="email" name="sender_email" class="form-control" placeholder="it@corp.test">
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Тема письма</label>
+    <input type="text" name="subject" class="form-control" placeholder="Обновление корпоративной почты">
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Текст письма (HTML)</label>
+    <textarea name="body_html" rows="8" class="form-control font-monospace small" placeholder="<p>Здравствуйте, {name}!</p><p>Перейдите по ссылке и обновите пароль: <a href='{link}'>ссылка</a></p>">
+      &lt;p&gt;Здравствуйте, {name}&lt;/p&gt;&lt;p&gt;Для входа в корпоративную почту подтвердите учётные данные:&lt;br&gt;&lt;a href=&quot;{link}&quot;&gt;Перейти к обновлению&lt;/a&gt;&lt;/p&gt;</textarea>
+  </div>
+
+  <div class="mb-3">
+    <label class="form-label">Лендинг-страница (приманка)</label>
+    <select name="landing_page_id" class="form-select">
+      <option value="">— без лендинга —</option>
+      {% for lp in landings %}
+      <option value="{{ lp.id }}">{{ lp.name }} ({{ lp.source_url }})</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Создать кампанию</button>
+  <a href="/campaigns" class="btn btn-outline-secondary">Отмена</a>
+</form>
+{% endblock %}
